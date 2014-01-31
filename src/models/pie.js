@@ -8,6 +8,7 @@ nv.models.pie = function() {
     , width = 500
     , height = 500
     , getX = function(d) { return d.x }
+    , getX2 = getX
     , getY = function(d) { return d.y }
     , getDescription = function(d) { return d.description }
     , id = Math.floor(Math.random() * 10000) //Create semi-unique ID in case user doesn't select one
@@ -15,6 +16,7 @@ nv.models.pie = function() {
     , valueFormat = d3.format(',.2f')
     , showLabels = true
     , pieLabelsOutside = true
+    , pieLabelsInside = false
     , donutLabelsOutside = false
     , labelType = "key"
     , labelThreshold = .02 //if slice percentage is under this, don't show label
@@ -152,95 +154,109 @@ nv.models.pie = function() {
           // This does the normal label
           var labelsArc = d3.svg.arc().innerRadius(0);
 
+          var innerArc;
+
           if (pieLabelsOutside){ labelsArc = arc; }
+          if (pieLabelsInside) { innerArc = d3.svg.arc().innerRadius(0); }
 
           if (donutLabelsOutside) { labelsArc = d3.svg.arc().outerRadius(arc.outerRadius()); }
 
-          pieLabels.enter().append("g").classed("nv-label",true)
-            .each(function(d,i) {
-                var group = d3.select(this);
+          var arcs = [{ getX: getX, getY: getY, arc: labelsArc }];
 
-                group
-                  .attr('transform', function(d) {
-                       if (labelSunbeamLayout) {
-                         d.outerRadius = arcRadius + 10; // Set Outer Coordinate
-                         d.innerRadius = arcRadius + 15; // Set Inner Coordinate
-                         var rotateAngle = (d.startAngle + d.endAngle) / 2 * (180 / Math.PI);
-                         if ((d.startAngle+d.endAngle)/2 < Math.PI) {
-                           rotateAngle -= 90;
-                         } else {
-                           rotateAngle += 90;
-                         }
-                         return 'translate(' + labelsArc.centroid(d) + ') rotate(' + rotateAngle + ')';
-                       } else {
-                         d.outerRadius = radius + 10; // Set Outer Coordinate
-                         d.innerRadius = radius + 15; // Set Inner Coordinate
-                         return 'translate(' + labelsArc.centroid(d) + ')'
-                       }
+          if (innerArc) {
+              arcs.push({ getX: getX2, getY: getY, arc: innerArc });
+          }
+
+          arcs.forEach(function (description) {
+              var labelsArc = description.arc,
+                  getX = description.getX,
+                  getY = description.getY;
+
+              pieLabels.enter().append("g").classed("nv-label",true)
+                  .each(function(d,i) {
+                      var group = d3.select(this);
+
+                      group
+                          .attr('transform', function(d) {
+                              if (labelSunbeamLayout) {
+                                  d.outerRadius = arcRadius + 10; // Set Outer Coordinate
+                                  d.innerRadius = arcRadius + 15; // Set Inner Coordinate
+                                  var rotateAngle = (d.startAngle + d.endAngle) / 2 * (180 / Math.PI);
+                                  if ((d.startAngle+d.endAngle)/2 < Math.PI) {
+                                      rotateAngle -= 90;
+                                  } else {
+                                      rotateAngle += 90;
+                                  }
+                                  return 'translate(' + labelsArc.centroid(d) + ') rotate(' + rotateAngle + ')';
+                              } else {
+                                  d.outerRadius = radius + 10; // Set Outer Coordinate
+                                  d.innerRadius = radius + 15; // Set Inner Coordinate
+                                  return 'translate(' + labelsArc.centroid(d) + ')'
+                              }
+                          });
+
+                      group.append('rect')
+                          .style('stroke', '#fff')
+                          .style('fill', '#fff')
+                          .attr("rx", 3)
+                          .attr("ry", 3);
+
+                      group.append('text')
+                          .style('text-anchor', labelSunbeamLayout ? ((d.startAngle + d.endAngle) / 2 < Math.PI ? 'start' : 'end') : 'middle') //center the text on it's origin or begin/end if orthogonal aligned
+                          .style('fill', '#000')
+
                   });
 
-                group.append('rect')
-                    .style('stroke', '#fff')
-                    .style('fill', '#fff')
-                    .attr("rx", 3)
-                    .attr("ry", 3);
+              var labelLocationHash = {};
+              var avgHeight = 14;
+              var avgWidth = 140;
+              var createHashKey = function(coordinates) {
 
-                group.append('text')
-                    .style('text-anchor', labelSunbeamLayout ? ((d.startAngle + d.endAngle) / 2 < Math.PI ? 'start' : 'end') : 'middle') //center the text on it's origin or begin/end if orthogonal aligned
-                    .style('fill', '#000')
-
-            });
-
-          var labelLocationHash = {};
-          var avgHeight = 14;
-          var avgWidth = 140;
-          var createHashKey = function(coordinates) {
-
-              return Math.floor(coordinates[0]/avgWidth) * avgWidth + ',' + Math.floor(coordinates[1]/avgHeight) * avgHeight;
-          };
-          pieLabels.transition()
-                .attr('transform', function(d) {
-                  if (labelSunbeamLayout) {
-                      d.outerRadius = arcRadius + 10; // Set Outer Coordinate
-                      d.innerRadius = arcRadius + 15; // Set Inner Coordinate
-                      var rotateAngle = (d.startAngle + d.endAngle) / 2 * (180 / Math.PI);
-                      if ((d.startAngle+d.endAngle)/2 < Math.PI) {
-                        rotateAngle -= 90;
+                  return Math.floor(coordinates[0]/avgWidth) * avgWidth + ',' + Math.floor(coordinates[1]/avgHeight) * avgHeight;
+              };
+              pieLabels.transition()
+                  .attr('transform', function(d) {
+                      if (labelSunbeamLayout) {
+                          d.outerRadius = arcRadius + 10; // Set Outer Coordinate
+                          d.innerRadius = arcRadius + 15; // Set Inner Coordinate
+                          var rotateAngle = (d.startAngle + d.endAngle) / 2 * (180 / Math.PI);
+                          if ((d.startAngle+d.endAngle)/2 < Math.PI) {
+                              rotateAngle -= 90;
+                          } else {
+                              rotateAngle += 90;
+                          }
+                          return 'translate(' + labelsArc.centroid(d) + ') rotate(' + rotateAngle + ')';
                       } else {
-                        rotateAngle += 90;
-                      }
-                      return 'translate(' + labelsArc.centroid(d) + ') rotate(' + rotateAngle + ')';
-                    } else {
-                      d.outerRadius = radius + 10; // Set Outer Coordinate
-                      d.innerRadius = radius + 15; // Set Inner Coordinate
+                          d.outerRadius = radius + 10; // Set Outer Coordinate
+                          d.innerRadius = radius + 15; // Set Inner Coordinate
 
-                      /*
-                      Overlapping pie labels are not good. What this attempts to do is, prevent overlapping.
-                      Each label location is hashed, and if a hash collision occurs, we assume an overlap.
-                      Adjust the label's y-position to remove the overlap.
-                      */
-                      var center = labelsArc.centroid(d);
-                      var hashKey = createHashKey(center);
-                      if (labelLocationHash[hashKey]) {
-                        center[1] -= avgHeight;
+                          /*
+                           Overlapping pie labels are not good. What this attempts to do is, prevent overlapping.
+                           Each label location is hashed, and if a hash collision occurs, we assume an overlap.
+                           Adjust the label's y-position to remove the overlap.
+                           */
+                          var center = labelsArc.centroid(d);
+                          var hashKey = createHashKey(center);
+                          if (labelLocationHash[hashKey]) {
+                              center[1] -= avgHeight;
+                          }
+                          labelLocationHash[createHashKey(center)] = true;
+                          return 'translate(' + center + ')'
                       }
-                      labelLocationHash[createHashKey(center)] = true;
-                      return 'translate(' + center + ')'
-                    }
-                });
-          pieLabels.select(".nv-label text")
-                .style('text-anchor', labelSunbeamLayout ? ((d.startAngle + d.endAngle) / 2 < Math.PI ? 'start' : 'end') : 'middle') //center the text on it's origin or begin/end if orthogonal aligned
-                .text(function(d, i) {
-                  var percent = (d.endAngle - d.startAngle) / (2 * Math.PI);
-                  var labelTypes = {
-                    "key" : getX(d.data),
-                    "value": getY(d.data),
-                    "percent": d3.format('%')(percent)
-                  };
-                  return (d.value && percent > labelThreshold) ? labelTypes[labelType] : '';
-                });
+                  });
+              pieLabels.select(".nv-label text")
+                  .style('text-anchor', labelSunbeamLayout ? ((d.startAngle + d.endAngle) / 2 < Math.PI ? 'start' : 'end') : 'middle') //center the text on it's origin or begin/end if orthogonal aligned
+                  .text(function(d, i) {
+                      var percent = (d.endAngle - d.startAngle) / (2 * Math.PI);
+                      var labelTypes = {
+                          "key" : getX(d.data),
+                          "value": getY(d.data),
+                          "percent": d3.format('%')(percent)
+                      };
+                      return (d.value && percent > labelThreshold) ? labelTypes[labelType] : '';
+                  });
+          });
         }
-
 
         // Computes the angle of an arc, converting from radians to degrees.
         function angle(d) {
@@ -312,6 +328,12 @@ nv.models.pie = function() {
     return chart;
   };
 
+  chart.x2 = function (_) {
+      if (!arguments.length) return getX2;
+      getX2 = _;
+      return chart;
+  };
+
   chart.y = function(_) {
     if (!arguments.length) return getY;
     getY = d3.functor(_);
@@ -346,6 +368,12 @@ nv.models.pie = function() {
     if (!arguments.length) return pieLabelsOutside;
     pieLabelsOutside = _;
     return chart;
+  };
+
+  chart.pieLabelsInside = function(_) {
+      if (!arguments.length) return pieLabelsInside;
+      pieLabelsInside = _;
+      return chart;
   };
 
   chart.labelType = function(_) {
