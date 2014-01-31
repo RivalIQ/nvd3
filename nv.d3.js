@@ -10279,6 +10279,9 @@ nv.models.pie = function() {
     , endAngle = false
     , donutRatio = 0.5
     , dispatch = d3.dispatch('chartClick', 'elementClick', 'elementDblClick', 'elementMouseover', 'elementMouseout')
+    , sliceAttributes = null
+    , pieLabelsOutsideAttributes = null
+    , pieLabelsInsideAttributes = null
     ;
 
   //============================================================
@@ -10394,6 +10397,12 @@ nv.models.pie = function() {
             .attr('fill', function(d,i) { return color(d, i); })
             .attr('stroke', function(d,i) { return color(d, i); });
 
+        if (sliceAttributes) {
+            Object.keys(sliceAttributes).forEach(function (key) {
+                slices.attr(key, sliceAttributes[key]);
+            });
+        }
+
         var paths = ae.append('path')
             .each(function(d) { this._current = d; });
             //.attr('d', arc);
@@ -10414,16 +10423,27 @@ nv.models.pie = function() {
 
           if (donutLabelsOutside) { labelsArc = d3.svg.arc().outerRadius(arc.outerRadius()); }
 
-          var arcs = [{ getX: getX, getY: getY, arc: labelsArc }];
+          var arcs = [{
+              getX: getX,
+              getY: getY,
+              arc: labelsArc,
+              labelAttributes: pieLabelsOutsideAttributes
+          }];
 
           if (innerArc) {
-              arcs.push({ getX: getX2, getY: getY, arc: innerArc });
+              arcs.push({
+                  getX: getX2,
+                  getY: getY,
+                  arc: innerArc,
+                  labelAttributes: pieLabelsInsideAttributes
+              });
           }
 
           arcs.forEach(function (description) {
               var labelsArc = description.arc,
                   getX = description.getX,
-                  getY = description.getY;
+                  getY = description.getY,
+                  labelAttributes = description.labelAttributes;
 
               pieLabels.enter().append("g").classed("nv-label",true)
                   .each(function(d,i) {
@@ -10508,6 +10528,13 @@ nv.models.pie = function() {
                       };
                       return (d.value && percent > labelThreshold) ? labelTypes[labelType] : '';
                   });
+
+              if (labelAttributes) {
+                  Object.keys(labelAttributes).forEach(function (key) {
+                      pieLabels.select(".nv-label text")
+                          .attr(key, labelAttributes[key]);
+                  });
+              }
           });
         }
 
@@ -10681,6 +10708,24 @@ nv.models.pie = function() {
   chart.labelThreshold = function(_) {
     if (!arguments.length) return labelThreshold;
     labelThreshold = _;
+    return chart;
+  };
+
+  chart.sliceAttributes = function(_) {
+      if (!arguments.length) return sliceAttributes;
+      sliceAttributes = _;
+      return chart;
+  };
+
+  chart.pieLabelsOutsideAttributes = function(_) {
+    if (!arguments.length) return pieLabelsOutsideAttributes;
+    pieLabelsOutsideAttributes = _;
+    return chart;
+  };
+
+  chart.pieLabelsInsideAttributes = function(_) {
+    if (!arguments.length) return pieLabelsInsideAttributes;
+    pieLabelsInsideAttributes = _;
     return chart;
   };
   //============================================================
@@ -10907,7 +10952,7 @@ nv.models.pieChart = function() {
   chart.dispatch = dispatch;
   chart.pie = pie;
 
-  d3.rebind(chart, pie, 'valueFormat', 'values', 'x', 'x2', 'y', 'description', 'id', 'showLabels', 'donutLabelsOutside', 'pieLabelsOutside', 'pieLabelsInside', 'labelType', 'donut', 'donutRatio', 'labelThreshold');
+  d3.rebind(chart, pie, 'valueFormat', 'values', 'x', 'x2', 'y', 'description', 'id', 'showLabels', 'donutLabelsOutside', 'pieLabelsOutside', 'pieLabelsInside', 'pieLabelsOutsideAttributes', 'pieLabelsInsideAttributes', 'labelType', 'donut', 'donutRatio', 'labelThreshold', 'sliceAttributes');
   chart.options = nv.utils.optionsFunc.bind(chart);
   
   chart.margin = function(_) {

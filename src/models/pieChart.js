@@ -217,7 +217,7 @@ nv.models.pieChart = function() {
   chart.dispatch = dispatch;
   chart.pie = pie;
 
-  d3.rebind(chart, pie, 'valueFormat', 'values', 'x', 'x2', 'y', 'description', 'id', 'showLabels', 'donutLabelsOutside', 'pieLabelsOutside', 'pieLabelsInside', 'labelType', 'donut', 'donutRatio', 'labelThreshold');
+  d3.rebind(chart, pie, 'valueFormat', 'values', 'x', 'x2', 'y', 'description', 'id', 'showLabels', 'donutLabelsOutside', 'pieLabelsOutside', 'pieLabelsInside', 'pieLabelsOutsideAttributes', 'pieLabelsInsideAttributes', 'labelType', 'donut', 'donutRatio', 'labelThreshold', 'sliceAttributes');
   chart.options = nv.utils.optionsFunc.bind(chart);
   
   chart.margin = function(_) {
