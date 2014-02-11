@@ -29,6 +29,8 @@ nv.models.pie = function() {
     , sliceAttributes = null
     , pieLabelsOutsideAttributes = null
     , pieLabelsInsideAttributes = null
+    , pieStartAngle = 0
+    , pieEndAngle = 360 * (Math.PI / 180)
     ;
 
   //============================================================
@@ -83,7 +85,9 @@ nv.models.pie = function() {
       // Setup the Pie chart and choose the data element
       var pie = d3.layout.pie()
           .sort(null)
-          .value(function(d) { return d.disabled ? 0 : getY(d) });
+          .value(function(d) { return d.disabled ? 0 : getY(d) })
+          .startAngle(pieStartAngle)
+          .endAngle(pieEndAngle);
 
       var slices = wrap.select('.nv-pie').selectAll('.nv-slice')
           .data(pie);
@@ -461,6 +465,18 @@ nv.models.pie = function() {
   chart.sliceAttributes = function(_) {
       if (!arguments.length) return sliceAttributes;
       sliceAttributes = _;
+      return chart;
+  };
+
+  chart.pieStartAngle = function(_) {
+      if (!arguments.length) return pieStartAngle;
+      pieStartAngle = _;
+      return chart;
+  };
+
+  chart.pieEndAngle = function(_) {
+      if (!arguments.length) return pieEndAngle;
+      pieEndAngle = _;
       return chart;
   };
 
